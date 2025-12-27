@@ -63,7 +63,8 @@ export function setupSocketHandlers(
 
       if (!room) {
         const existingRoom = roomManager.getRoom(roomCode);
-        let errorCode = ERROR_CODES.ROOM_NOT_FOUND;
+        let errorCode;
+        errorCode = ERROR_CODES.ROOM_NOT_FOUND;
         let message = 'Room not found';
 
         if (existingRoom) {
@@ -244,7 +245,7 @@ export function setupSocketHandlers(
       }
     });
 
-    // End Round Early (by describer)
+    // End Round Early (by any player on the current team)
     socket.on(CLIENT_EVENTS.ROUND_END_EARLY, () => {
       const playerInfo = socketToPlayer.get(socket.id);
       if (!playerInfo) return;
@@ -252,9 +253,12 @@ export function setupSocketHandlers(
       const room = roomManager.getRoom(playerInfo.roomCode);
       if (!room || !room.currentRound) return;
 
-      // Only the describer can end the round early
-      if (room.currentRound.describerId !== playerInfo.id) {
-        return;
+      // Allow any player on the current team to end the round early
+      const currentTeam = room.teams[room.currentRound.teamId];
+      const isOnCurrentTeam = currentTeam.players.some(p => p.id === playerInfo.id);
+
+      if (!isOnCurrentTeam) {
+        return; // Only current team can end the round
       }
 
       // Clear the timer
@@ -358,7 +362,8 @@ export function setupSocketHandlers(
 
         if (secondsLeft <= 0) {
           clearRoomTimer(roomCode);
-          endCurrentRound(roomCode);
+          // Always use manual handoff - next team's describer clicks "Start Round"
+          endCurrentRound(roomCode, false);
         }
       }, 1000);
 
@@ -407,7 +412,7 @@ export function setupSocketHandlers(
       }
     }
 
-    function endCurrentRound(roomCode: string, autoStart: boolean = true) {
+    function endCurrentRound(roomCode: string, autoStart: boolean = false) {
       const result = roomManager.endRound(roomCode);
       if (!result) return;
 
@@ -432,12 +437,12 @@ export function setupSocketHandlers(
       if (result.isGameOver) {
         endGame(roomCode);
       } else if (autoStart) {
-        // Auto-start after 3 seconds (timer expired)
+        // Auto-start after 3 seconds (only if explicitly requested)
         setTimeout(() => {
           startNewRound(roomCode);
         }, 3000);
       }
-      // If autoStart is false, wait for manual "Start Next Round" button
+      // If autoStart is false, wait for manual "Start Round" button from next describer
     }
 
     function endGame(roomCode: string) {

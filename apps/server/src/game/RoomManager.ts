@@ -212,9 +212,27 @@ export class RoomManager {
     const room = this.rooms.get(roomCode);
     if (!room || !room.currentRound) return [];
 
-    // Add new words to the round
-    room.currentRound.words.push(...words);
-    return words;
+    // Get existing word texts (case-insensitive) to avoid duplicates
+    const existingTexts = new Set(
+      room.currentRound.words.map(w => this.normalizeWord(w.text))
+    );
+    const existingIds = new Set(
+      room.currentRound.words.map(w => w.id)
+    );
+
+    // Filter out duplicates
+    const uniqueWords = words.filter(w => 
+      !existingIds.has(w.id) && 
+      !existingTexts.has(this.normalizeWord(w.text))
+    );
+
+    if (uniqueWords.length === 0) {
+      return [];
+    }
+
+    // Add new unique words to the round
+    room.currentRound.words.push(...uniqueWords);
+    return uniqueWords;
   }
 
   endRound(roomCode: string): { round: Round; isGameOver: boolean } | null {
