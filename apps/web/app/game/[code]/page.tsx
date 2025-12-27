@@ -10,7 +10,7 @@ import GuesserView from '@/components/game/GuesserView';
 import SpectatorView from '@/components/game/SpectatorView';
 import RoundTransition from '@/components/game/RoundTransition';
 import GameOver from '@/components/game/GameOver';
-import type { RoundStartingPayload, GameEndedPayload } from 'shared/events';
+import type { RoundStartingPayload, GameEndedPayload, RoundEndedPayload } from 'shared/events';
 
 type GamePhase = 'transition' | 'playing' | 'round-end' | 'game-over';
 
@@ -20,13 +20,16 @@ export default function GamePage() {
   
   const { 
     room, getMyRole,
-    setWords, addWords, updateWord, setCurrentRound, setTimeLeft, 
-    addGuess, clearGuesses 
+    setWords, addWords, updateWord, clearWords,
+    setCurrentRound, setTimeLeft,
+    addGuess, clearGuesses, updateTeamScores
   } = useGameStore();
 
   const [phase, setPhase] = useState<GamePhase>('transition');
   const [transitionData, setTransitionData] = useState<RoundStartingPayload | null>(null);
   const [gameEndData, setGameEndData] = useState<GameEndedPayload | null>(null);
+  // Store last round's score for transition screen
+  const [lastRoundScore, setLastRoundScore] = useState<{ teamId: string; score: number } | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -34,13 +37,15 @@ export default function GamePage() {
     socket.on(SERVER_EVENTS.ROUND_STARTING, (data: RoundStartingPayload) => {
       setTransitionData(data);
       setPhase('transition');
-      clearGuesses();
+      // Don't clear data yet - wait until round actually starts
       setTimeLeft(0); // Clear timer during transition
     });
 
     socket.on(SERVER_EVENTS.ROUND_STARTED, (data) => {
+      // Clear previous round data when new round starts
+      clearGuesses();
+      clearWords();
       setCurrentRound(data.round);
-      // Timer will be set by TIMER_TICK event from server
       setPhase('playing');
     });
 
@@ -49,7 +54,7 @@ export default function GamePage() {
     });
 
     socket.on(SERVER_EVENTS.WORDS_ADDED, (data) => {
-      // Add new words to existing words
+      // Add new words to existing words (store handles deduplication)
       addWords(data.words);
     });
 
@@ -65,7 +70,16 @@ export default function GamePage() {
       updateWord(data.word);
     });
 
-    socket.on(SERVER_EVENTS.ROUND_ENDED, (data) => {
+    socket.on(SERVER_EVENTS.ROUND_ENDED, (data: RoundEndedPayload) => {
+      // Store the round score for display on transition screen
+      setLastRoundScore({
+        teamId: data.round.teamId,
+        score: data.round.roundScore
+      });
+      
+      // Update team scores from server (this is the authoritative total including this round)
+      updateTeamScores(data.teamScores.red, data.teamScores.blue);
+      
       // Show transition screen for next round
       if (data.nextRound) {
         setTransitionData({
@@ -96,7 +110,7 @@ export default function GamePage() {
       socket.off(SERVER_EVENTS.ROUND_ENDED);
       socket.off(SERVER_EVENTS.GAME_ENDED);
     };
-  }, [addGuess, clearGuesses, setCurrentRound, setTimeLeft, setWords, updateWord]);
+  }, [addGuess, clearGuesses, clearWords, setCurrentRound, setTimeLeft, setWords, updateWord, updateTeamScores, addWords]);
 
   if (!room) {
     return (
@@ -111,7 +125,7 @@ export default function GamePage() {
   }
 
   if (phase === 'transition' && transitionData) {
-    return <RoundTransition data={transitionData} room={room} />;
+    return <RoundTransition data={transitionData} room={room} lastRoundScore={lastRoundScore} />;
   }
 
   const role = getMyRole();

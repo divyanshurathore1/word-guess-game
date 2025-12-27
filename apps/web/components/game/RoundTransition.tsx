@@ -12,9 +12,10 @@ import clsx from 'clsx';
 interface RoundTransitionProps {
   data: RoundStartingPayload;
   room: Room;
+  lastRoundScore?: { teamId: string; score: number } | null;
 }
 
-export default function RoundTransition({ data, room }: RoundTransitionProps) {
+export default function RoundTransition({ data, room, lastRoundScore }: RoundTransitionProps) {
   const { playerId } = useGameStore();
   const [isStarting, setIsStarting] = useState(false);
   
@@ -38,9 +39,26 @@ export default function RoundTransition({ data, room }: RoundTransitionProps) {
     socket.emit(CLIENT_EVENTS.ROUND_START_NEXT);
   };
 
+  // Team scores already include the last round's score (updated via ROUND_ENDED)
+  const redScore = room.teams.red.score;
+  const blueScore = room.teams.blue.score;
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="text-center">
+      <div className="text-center max-w-lg w-full">
+        {/* Last Round Summary (if not first round) */}
+        {lastRoundScore && data.roundNumber > 1 && (
+          <div className="bg-slate-800/50 rounded-xl p-4 mb-6">
+            <p className="text-slate-400 text-sm mb-2">Round {data.roundNumber - 1} Complete!</p>
+            <p className="text-lg">
+              <span className={lastRoundScore.teamId === 'red' ? 'text-red-400' : 'text-blue-400'}>
+                {lastRoundScore.teamId.toUpperCase()} Team
+              </span>
+              <span className="text-green-400 font-bold ml-2">+{lastRoundScore.score} points</span>
+            </p>
+          </div>
+        )}
+
         <div className="mb-6">
           <span className="text-slate-400 text-lg">Round</span>
           <h1 className="text-7xl font-bold text-white">{data.roundNumber}</h1>
@@ -59,7 +77,7 @@ export default function RoundTransition({ data, room }: RoundTransitionProps) {
           </p>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 mb-8 max-w-md mx-auto">
+        <div className="bg-slate-800/50 rounded-xl p-6 mb-8">
           {isDescriber ? (
             <div className="text-yellow-400">
               <p className="text-lg font-bold mb-2">🎤 You're describing!</p>
@@ -97,14 +115,23 @@ export default function RoundTransition({ data, room }: RoundTransitionProps) {
           </div>
         )}
 
-        <div className="flex justify-center gap-8 mt-8">
-          <div className="text-center">
-            <div className="text-red-400 text-sm">Red Team</div>
-            <div className="text-2xl font-bold text-white">{room.teams.red.score}</div>
+        {/* Team Scores - Both teams with totals */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className={clsx(
+            "rounded-xl p-4 border",
+            data.teamId === 'red' ? "bg-red-900/30 border-red-500" : "bg-red-900/20 border-red-500/30"
+          )}>
+            <p className="text-red-400 text-sm font-medium">Red Team</p>
+            <p className="text-3xl font-bold text-white">{redScore}</p>
+            <p className="text-slate-500 text-xs">Total Score</p>
           </div>
-          <div className="text-center">
-            <div className="text-blue-400 text-sm">Blue Team</div>
-            <div className="text-2xl font-bold text-white">{room.teams.blue.score}</div>
+          <div className={clsx(
+            "rounded-xl p-4 border",
+            data.teamId === 'blue' ? "bg-blue-900/30 border-blue-500" : "bg-blue-900/20 border-blue-500/30"
+          )}>
+            <p className="text-blue-400 text-sm font-medium">Blue Team</p>
+            <p className="text-3xl font-bold text-white">{blueScore}</p>
+            <p className="text-slate-500 text-xs">Total Score</p>
           </div>
         </div>
       </div>
