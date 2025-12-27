@@ -1,0 +1,22 @@
+{
+  "name": "word-guess-game",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:server": "npm run dev -w apps/server",
+    "build": "turbo build",
+    "db:push": "npm run db:push -w apps/server",
+    "db:seed": "npm run db:seed -w apps/server",
+    "db:studio": "npm run db:studio -w apps/server"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Word packs - themed collections of words
+model WordPack {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  words       Word[]
+}
+
+// Individual words with difficulty-based points
+model Word {
+  id          String    @id @default(cuid())
+  text        String
+  points      Int
+  difficulty  Difficulty
+  category    String?   // Optional: "geography", "pop-culture", "science", etc.
+  
+  packId      String
+  pack        WordPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  
+  @@unique([text, packId]) // No duplicate words in same pack
+  @@index([packId])
+  @@index([difficulty])
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+// Game history (optional - for analytics/leaderboards)
+model GameRecord {
+  id            String   @id @default(cuid())
+  roomCode      String
+  winningTeam   String?  // 'red', 'blue', or 'tie'
+  redScore      Int
+  blueScore     Int
+  totalRounds   Int
+  playerCount   Int
+  duration      Int      // Total game duration in seconds
+  createdAt     DateTime @default(now())
+  
+  rounds        RoundRecord[]
+}
+
+model RoundRecord {
+  id            String   @id @default(cuid())
+  roundNumber   Int
+  teamId        String   // 'red' or 'blue'
+  describerName String
+  score         Int
+  wordsGuessed  Int
+  totalWords    Int
+  
+  gameId        String
+  game          GameRecord @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  
+  @@index([gameId])
+}
