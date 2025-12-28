@@ -2,6 +2,7 @@
   "name": "word-guess-game",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@10.2.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,6 +12,8 @@
     "dev:web": "npm run dev -w apps/web",
     "dev:server": "npm run dev -w apps/server",
     "build": "turbo build",
+    "build:server": "npm run build -w apps/server",
+    "start:server": "npm run start -w apps/server",
     "db:push": "npm run db:push -w apps/server",
     "db:seed": "npm run db:seed -w apps/server",
     "db:studio": "npm run db:studio -w apps/server"
