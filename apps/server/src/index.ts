@@ -55,9 +55,10 @@ setupSocketHandlers(io, roomManager, wordManager);
 
 // Start server
 const PORT = process.env.PORT || 3001;
+const HOST = '0.0.0.0';
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+httpServer.listen(Number(PORT), HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 WebSocket server ready`);
 });
 
