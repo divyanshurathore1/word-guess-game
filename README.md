@@ -119,7 +119,7 @@ word-guess-game/
 - [x] Contributions tracking
 - [x] Round transitions
 - [x] Final leaderboard & MVP
-- [x] 200+ words with difficulty-based points
+- [x] 300+ words with difficulty-based points
 
 ---
 
